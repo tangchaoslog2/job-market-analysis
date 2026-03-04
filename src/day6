@@ -1,0 +1,66 @@
+import pandas as pd
+
+
+file_path = "../data/jobs-usa.csv"
+df = pd.read_csv(file_path)
+df["salary_clean"] = pd.to_numeric(df["salary"], errors="coerce")
+# string become float  int errors=coerce if change  fail  coerce oblige force nan
+# if not write coerce default errors="raise" illegal evaluation misreport
+df = df.dropna(subset=["salary_clean"])
+df["salary_clean"] = (
+    df["salary"]
+    .str.replace("$", "", regex=False)
+    .str.replace(",", "", regex=False)
+    .str.split("-")
+)
+# salary = salary.replace("$", "").replace(",", "")
+# drop symbols
+df[["low", "high"]] = df["salary"].str.split("-", expand=True)
+
+df["low"] = (
+    df["low"]
+    .str.replace("$", "", regex=False)
+    .str.replace(",", "", regex=False)
+    .astype(float)
+)
+
+df["high"] = (
+    df["high"]
+    .str.replace("$", "", regex=False)
+    .str.replace(",", "", regex=False)
+    .astype(float)
+)
+
+df["salary_cleans"] = (df["low"] + df["high"]) / 2
+
+df["salary_cleans"].describe()  # 这是数值列 count mean std
+print(df["salary_cleans"].dtype)
+
+df["Python"] = df["description"].str.contains("Python", case=False, na=False)
+# bool line
+skills = ["Python", "SQL", "Java", "R", "Excel"]
+frequency_ratio = df[skills].mean().sort_values(ascending=False)
+# series.(mean)
+df.groupby("Python")["salary_clean"].agg(["mean", "median", "count"])
+
+df["salary_clean"].describe()  # count unique top fred  分类变量
+df.info()
+df.groupby(["Python", "SQL"]).agg(
+    avg_salary=("salary_clean", "mean"), sample_size=("salary_clean", "count")
+).reset_index()
+# together simultaneously python and sql increase/boost advance salary
+
+df.groupby(["Python", "SQL"])["salary_clean"].agg(
+    avg_salary="mean", sample_size="count"
+)
+# sql python if high python
+# premium
+df["skill_count"] = df[skills].sum(axis=1)
+df.groupby("skill_count")["salary_clean"].agg(avg_salary="mean", sample_size="count")
+Q1 = df["salary_clean"].quantile(0.25)
+Q3 = df["salary_clean"].quantile(0.75)
+IQR = Q3 - Q1
+
+df_filtered = df[
+    (df["salary_clean"] >= Q1 - 1.5 * IQR) & (df["salary_clean"] <= Q3 + 1.5 * IQR)
+]

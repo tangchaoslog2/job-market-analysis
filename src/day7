@@ -1,0 +1,89 @@
+import pandas as pd
+file_path = "../data/jobs-usa.csv"
+df = pd.read_csv(file_path)
+print(df["salary"].value_counts().head(10))
+print(df.describe())
+df["salary"] = df["salary"].str.replace(r"\s+", "", regex=True)
+# 1 清理字符串
+df["salary"] = df["salary"].str.replace(r"\s+", "", regex=True)
+
+# 2 拆分
+df[["low", "high"]] = df["salary"].str.split("-", expand=True)
+
+# 3 去符号
+for col in ["low", "high"]:
+    df[col] = (
+        df[col].str.replace("$", "", regex=False).str.replace(",", "", regex=False)
+    )
+
+# 4 转数字
+df["low"] = pd.to_numeric(df["low"], errors="coerce")
+df["high"] = pd.to_numeric(df["high"], errors="coerce")
+
+# 5 删除 NaN
+df = df.dropna(subset=["low", "high"])
+
+# 6 删除小时薪（假设 <1000 为小时）
+df = df[df["low"] > 1000]
+
+# 7 计算平均薪资
+df["salary_clean"] = (df["low"] + df["high"]) / 2
+print("\n=== 清洗后 salary 示例 ===")
+print(df["salary"].head(10))
+
+print("\n=== low / high 示例 ===")
+print(df[["low", "high"]].head(10))
+
+print("\n=== salary_clean 描述统计 ===")
+print(df["salary_clean"].describe())
+print(df[["salary", "low", "high"]].head(20))
+print(df["salary_clean"].describe())
+print(df[df["salary_clean"] < 1000].head(10))
+
+# 判断是否为月薪
+df["is_monthly"] = df["low"] < 20000
+
+# 转成年薪
+df.loc[df["is_monthly"], "salary_clean"] = df.loc[df["is_monthly"], "salary_clean"] * 12
+# 判断是否为月薪
+df["is_monthly"] = df["low"] < 20000
+
+# 转成年薪
+
+df.loc[df["is_monthly"], "salary_clean"] = df.loc[df["is_monthly"], "salary_clean"] * 12
+skills = ["Python", "Java", "R", "SQL", "Excel"]
+
+for skill in skills:
+    df[skill] = df["description"].str.contains(skill, case=False, na=False)
+skill_groups = {"Programming": ["Python", "Java", "R"], "DataTools": ["SQL", "Excel"]}
+for group, cols in skill_groups.items():
+    df[group] = df[cols].any(axis=1)
+print(df.columns)
+print(df.groupby("Programming")["salary_clean"].mean())
+print(df.groupby("Python")["salary_clean"].mean())
+
+skills = [
+    "python", "sql", "excel", "tableau", "power bi",
+    "aws", "azure", "gcp",
+    "machine learning", "statistics",
+    "pandas", "numpy",
+    "spark", "hadoop",
+    "data visualization",
+    "communication", "stakeholder",
+    "etl", "dashboard"
+]
+for skill in skills:
+    df[skill] = df["description"].str.lower().str.contains(skill, na=False)
+
+skill_summary = {}
+
+for skill in skills:
+    skill_summary[skill] = df[skill].sum()
+
+print(sorted(skill_summary.items(), key=lambda x: x[1], reverse=True))
+import matplotlib.pyplot as plt
+
+df["salary_clean"].hist(bins=30)
+plt.title("Salary Distribution")
+plt.savefig("../images/salary_distribution.png")
+skill_df.to_csv("../data/skill_summary.csv", index=False)

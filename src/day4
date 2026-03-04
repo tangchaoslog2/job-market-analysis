@@ -1,0 +1,26 @@
+def clean_salary(x):
+    x = x.replace("k", "")
+    low, high = x.split("-")
+    return (float(low) + float(high)) / 2 * 1000
+
+df["salary_clean"] = df["salary"].apply(clean_salary)
+skills = ["Python", "SQL", "Java", "R", "Excel"]
+
+frequency_ratio = df[skills].mean().sort_values(ascending=False)
+
+df.groupby("Python")["salary_clean"].agg(["mean", "median", "count"])
+
+result = df.groupby(["Python", "SQL"]).agg(
+    avg_salary=("salary_clean", "mean"),
+    sample_size=("salary_clean", "count")
+).reset_index()
+#ior drop extreme 
+Q1 = df["salary_clean"].quantile(0.25)
+Q3 = df["salary_clean"].quantile(0.75)
+IQR = Q3 - Q1
+
+df_filtered = df[
+    (df["salary_clean"] >= Q1 - 1.5 * IQR) &
+    (df["salary_clean"] <= Q3 + 1.5 * IQR)
+]
+df_filtered["salary_clean"].mean()

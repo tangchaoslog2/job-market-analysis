@@ -1,0 +1,76 @@
+# ===============================
+# SQL Analysis for Job Market
+# ===============================
+
+import pandas as pd
+import sqlite3
+
+# 1️⃣ Load cleaned dataset
+df = pd.read_csv("../data/jobs.csv")
+
+# 2️⃣ Clean salary again (确保SQL版本独立运行)
+df = df.dropna(subset=["salary"])
+
+df["salary"] = df["salary"].str.replace("\r", "").str.replace("\n", "")
+df["salary"] = df["salary"].str.replace(" ", "")
+df["salary"] = df["salary"].str.replace("$", "", regex=False)
+
+df[["low", "high"]] = df["salary"].str.split("-", expand=True)
+
+df["low"] = df["low"].str.replace(",", "").astype(float)
+df["high"] = df["high"].str.replace(",", "").astype(float)
+
+df["salary_clean"] = (df["low"] + df["high"]) / 2
+
+df["is_monthly"] = df["salary_clean"] < 20000
+df.loc[df["is_monthly"], "salary_clean"] *= 12
+
+df = df.dropna(subset=["salary_clean"])
+
+# 3️⃣ Connect SQLite (memory database)
+conn = sqlite3.connect(":memory:")
+df.to_sql("jobs", conn, index=False, if_exists="replace")
+
+cursor = conn.cursor()
+
+# 4️⃣ SQL Queries
+
+print("\n=== 1. Average Salary ===")
+query1 = """
+SELECT AVG(salary_clean) as avg_salary
+FROM jobs;
+"""
+print(pd.read_sql(query1, conn))
+
+
+print("\n=== 2. Top 5 Companies by Job Count ===")
+query2 = """
+SELECT company, COUNT(*) as job_count
+FROM jobs
+GROUP BY company
+ORDER BY job_count DESC
+LIMIT 5;
+"""
+print(pd.read_sql(query2, conn))
+
+
+print("\n=== 3. Remote vs Onsite Salary ===")
+query3 = """
+SELECT onsite_remote, AVG(salary_clean) as avg_salary
+FROM jobs
+GROUP BY onsite_remote;
+"""
+print(pd.read_sql(query3, conn))
+
+
+print("\n=== 4. Salary Above 120k ===")
+query4 = """
+SELECT COUNT(*) as high_salary_jobs
+FROM jobs
+WHERE salary_clean > 120000;
+"""
+print(pd.read_sql(query4, conn))
+
+conn.close()
+
+print("\nSQL Analysis Completed Successfully.")

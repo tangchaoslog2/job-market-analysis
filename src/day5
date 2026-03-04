@@ -1,0 +1,40 @@
+avg = (low + high) / 2
+df["salary_clean"] = (
+    df["salary"]
+    .str.replace("$", "", regex=False)
+    .str.replace(",", "", regex=False)
+    .str.split("–")
+)
+#operate manipulate to string delete $ regex express representative end line
+#str.split ("-) 按每个 separator  partition string 
+df["salary"].apply(函数)
+#对every line conduct function self defined
+def clean_salary(x):
+    x = x.replace("k", "")
+    low, high = x.split("-")
+    return (float(low) + float(high)) / 2 * 1000
+
+df["salary_clean"] = df["salary"].apply(clean_salary)
+
+#narrative  limiitations 
+df.groupby("location")["salary_clean"].mean()
+#caculate premium percent  count compute 
+premium = (
+    df.groupby("Python")["salary_clean"].mean()
+)
+
+python_premium_ratio = premium[True] / premium[False] - 1
+#remove
+df_filtered.groupby("Python")["salary_clean"].mean()
+
+#augment 1 skill  raise salary
+
+summary = pd.DataFrame({
+    "frequency": df[skills].mean(),
+    "avg_salary": [df[df[s] == True]["salary_clean"].mean() for s in skills]
+})
+#dataframe
+df["R"] = df["description"].str.contains(r"\bR\b", case=False, na=False)
+#filter series.median() sum max min mean
+
+
