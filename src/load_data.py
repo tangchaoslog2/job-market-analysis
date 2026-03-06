@@ -52,3 +52,4 @@ print(df[skills_list].sum())
 
 print("\n每个技能组出现次数:")
 print(df[list(skill_groups.keys())].sum())
+
